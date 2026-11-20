@@ -336,8 +336,8 @@ mod output_file_tests {
         assert!(ok(Path::new(r"C:\Users\u\AppData\Roaming\Vox\count.txt")));
         assert!(ok(Path::new(r"D:\obs\МАТЫ.TXT")));
         assert!(!ok(Path::new(r"C:\x\run.bat")));
-        assert!(!ok(Path::new(r"\host\share\count.txt")));
-        assert!(!ok(Path::new(r"\?\C:\x\count.txt")));
+        assert!(!ok(Path::new(r"\\host\share\count.txt")));
+        assert!(!ok(Path::new(r"\\?\C:\x\count.txt")));
         assert!(!ok(Path::new(r"C:\x\a.bat:s.txt")));
         assert!(!ok(Path::new(r"C:\x\..\y\count.txt")));
         assert!(!ok(Path::new("count.txt")));
