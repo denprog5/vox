@@ -511,11 +511,8 @@ impl App {
         let Ok(mut new) = serde_json::from_value::<Config>(cur) else {
             return;
         };
-        // Счётчик пишет только текстовый файл: страница не может указать ему exe, bat и т.п.
-        let txt = |p: &std::path::Path| {
-            p.extension().is_some_and(|e| e.eq_ignore_ascii_case("txt"))
-        };
-        if !txt(&new.swears.output_file) {
+        // Счётчик пишет только .txt на локальном диске: не exe/bat, не сетевой путь.
+        if !config::safe_output_file(&new.swears.output_file) {
             new.swears.output_file = self.cfg.swears.output_file.clone();
         }
         let device_changed = new.device != self.cfg.device;

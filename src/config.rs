@@ -311,3 +311,35 @@ fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()>
     }
     Ok(())
 }
+
+/// Файл счётчика, который можно принять со страницы: обычный `.txt` на локальном диске
+/// (`C:\…`), без сетевых путей, `\?\`, `..` и потоков NTFS (`файл:поток`).
+pub fn safe_output_file(p: &std::path::Path) -> bool {
+    let s = p.to_string_lossy();
+    let b = s.as_bytes();
+    b.len() > 3
+        && b[0].is_ascii_alphabetic()
+        && b[1] == b':'
+        && (b[2] == b'\\' || b[2] == b'/')
+        && !s[2..].contains(':')
+        && !p.components().any(|c| matches!(c, std::path::Component::ParentDir))
+        && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("txt"))
+}
+
+#[cfg(test)]
+mod output_file_tests {
+    use super::safe_output_file as ok;
+    use std::path::Path;
+
+    #[test]
+    fn output_file_only_local_txt() {
+        assert!(ok(Path::new(r"C:\Users\u\AppData\Roaming\Vox\count.txt")));
+        assert!(ok(Path::new(r"D:\obs\МАТЫ.TXT")));
+        assert!(!ok(Path::new(r"C:\x\run.bat")));
+        assert!(!ok(Path::new(r"\host\share\count.txt")));
+        assert!(!ok(Path::new(r"\?\C:\x\count.txt")));
+        assert!(!ok(Path::new(r"C:\x\a.bat:s.txt")));
+        assert!(!ok(Path::new(r"C:\x\..\y\count.txt")));
+        assert!(!ok(Path::new("count.txt")));
+    }
+}
