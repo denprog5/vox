@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vox — настройки</title>
+<link rel="icon" href="/logo.png">
+<style>
+  :root { --bg: #15161c; --card: #20222b; --card2: #292c37; --line: #353946; --text: #ecedf1; --mute: #9aa0b0;
+          --acc: #9b8cff; --brand: linear-gradient(135deg, #2a2fd6, #8b3dff); --ok: #6fd08c; --warn: #ffb35c; --bad: #ff6b6b; --r: 14px; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; }
+  header img { width: 52px; height: 52px; border-radius: 13px; box-shadow: 0 6px 20px #5b3dff55; }
+  header h1 { font-size: 24px; margin: 0; letter-spacing: .5px; }
+  header .sub { color: var(--mute); font-size: 13px; }
+  #status { margin-left: auto; padding: 6px 12px; border-radius: 20px; background: var(--card); font-size: 13px; max-width: 420px; }
+  #status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); margin-right: 8px; vertical-align: 1px; }
+  #status.ok::before { background: var(--ok); }
+  section { background: var(--card); border-radius: var(--r); padding: 16px 18px; margin-bottom: 14px; }
+  h2 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  h2 .n { background: var(--card2); color: var(--mute); border-radius: 8px; padding: 0 7px; font-size: 12px; }
+  .hint { color: var(--mute); font-size: 12.5px; margin: 6px 0; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .row > .lbl { flex: 0 0 130px; color: var(--mute); }
+  input[type=range] { flex: 1; min-width: 0; accent-color: var(--acc); }
+  .val { flex: 0 0 64px; text-align: right; font-variant-numeric: tabular-nums; color: var(--mute); }
+  select, button, input[type=text] { font: inherit; color: var(--text); background: var(--card2); border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; }
+  select { flex: 1; min-width: 0; }
+  button { cursor: pointer; white-space: nowrap; } button:hover { border-color: var(--acc); }
+  button.primary { background: var(--brand); border-color: transparent; font-weight: 600; }
+  button.primary:hover { filter: brightness(1.12); }
+  button.rec { background: #c62828; border-color: #c62828; }
+  button:disabled { opacity: .5; cursor: default; }
+  .meter { position: relative; height: 14px; background: #121318; border-radius: 7px; overflow: hidden; flex: 1; }
+  .meter i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #3f8f58, #9ad46a); transition: width 70ms linear; }
+  .meter b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; }
+  .meter b.s { background: var(--bad); }
+  .meter.small { height: 8px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 10px; background: var(--card2); font-size: 12.5px; }
+  .chip.talk { background: #2f6b45; } .chip.shout { background: #8a2f2f; } .chip.emo { background: #3d4a8a; }
+  .emo { display: grid; grid-template-columns: 26px 120px 1fr 120px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .emo:first-of-type { border-top: 0; }
+  .emo .name { font-weight: 600; }
+  .emo .sens { display: flex; align-items: center; gap: 6px; }
+  .train { display: grid; grid-template-columns: 1fr 64px 150px auto auto auto; gap: 8px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+  .train:first-of-type { border-top: 0; }
+  .train .cnt { color: var(--mute); text-align: right; }
+  .train .cnt.good { color: var(--ok); }
+  .train .acc { font-size: 12.5px; color: var(--mute); }
+  .acc.good { color: var(--ok); } .acc.mid { color: var(--warn); } .acc.bad { color: var(--bad); }
+  #overall { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--card2); }
+  #overall b.good { color: var(--ok); } #overall b.mid { color: var(--warn); } #overall b.bad { color: var(--bad); }
+  .guess { text-align: center; margin-top: 6px; font-weight: 600; min-height: 20px; }
+  #trainBox { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: #2b355e; display: none; font-weight: 600; }
+  #trainBox.show { display: block; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .url { display: flex; gap: 8px; }
+  .url input { flex: 1; font-family: Consolas, monospace; }
+  kbd { background: var(--card2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; font: 12px Consolas, monospace; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+  aside { position: sticky; top: 16px; }
+  .preview { background: repeating-conic-gradient(#2a2c34 0 25%, #24262d 0 50%) 0 0 / 22px 22px; border-radius: var(--r); overflow: hidden; aspect-ratio: 1; }
+  .preview iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .now { margin-top: 10px; text-align: center; }
+  .heard { color: var(--mute); font-size: 12.5px; min-height: 18px; text-align: center; margin-top: 6px; }
+  label.sw { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--acc); }
+  .warn { color: var(--warn); }
+  .tag { font-size: 12px; color: var(--mute); }
+  .words { display: grid; grid-template-columns: 120px 1fr; gap: 6px 10px; align-items: center; margin-top: 10px; }
+  .words input { width: 100%; font-size: 13px; }
+  .said { font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; }
+  .said q { color: var(--text); } .said .e { color: var(--ok); font-weight: 600; }
+  #sw_hour { flex: 0 0 auto; }
+  #sw_last { min-height: 18px; }
+  nav.tabs { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0; margin-bottom: 4px; background: var(--bg); }
+  nav.tabs a { color: var(--mute); text-decoration: none; padding: 5px 12px; border-radius: 20px; background: var(--card); font-size: 13px; }
+  nav.tabs a:hover, nav.tabs a.on { color: var(--text); background: var(--card2); box-shadow: inset 0 0 0 1px var(--acc); }
+  section { scroll-margin-top: 60px; }
+  h2 .ico { font-size: 16px; }
+  .lead { color: var(--mute); font-size: 13px; margin: -4px 0 10px; }
+  details.how { margin-top: 8px; border-radius: 10px; background: var(--card2); padding: 0 12px; }
+  details.how summary { cursor: pointer; padding: 8px 0; color: var(--acc); font-size: 13px; list-style: none; }
+  details.how summary::before { content: "▸ "; } details.how[open] summary::before { content: "▾ "; }
+  details.how .hint { margin: 0 0 10px; }
+  .stat { display: flex; align-items: center; gap: 16px; padding: 12px 14px; border-radius: 12px; background: var(--card2); margin: 4px 0 10px; }
+  .stat .num { font-size: 40px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; min-width: 64px; }
+  .stat .num.off { opacity: .35; }
+  .stat .cap { color: var(--mute); font-size: 12.5px; }
+  .stat .grow { flex: 1; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } aside { position: static; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/logo.png" alt="">
+    <div><h1>Vox</h1><div class="sub">голосовой помощник стримера: аватар, эмоции, донаты и счётчик мата</div></div>
+    <div id="status">Подключаюсь к приложению…</div>
+  </header>
+
+  <main>
+    <nav class="tabs">
+      <a href="#s-obs">Аватар в OBS</a><a href="#s-voice">Голос</a><a href="#s-emo">Эмоции</a><a href="#s-train">Обучение</a>
+      <a href="#s-don">Донаты</a><a href="#s-swears">Счётчик мата</a><a href="#s-more">Ещё</a>
+    </nav>
+
+    <section id="s-obs">
+      <h2><span class="ico">🖥</span> Аватар в OBS</h2>
+      <div class="url"><input type="text" id="url" readonly aria-label="Ссылка на аватар"><button id="copyUrl">Скопировать</button></div>
+      <div class="hint">В OBS: <b>Источники → + → Браузер</b> → вставь ссылку в поле <b>URL</b> (галочку «Локальный файл» не ставь), ширина и высота <b>600</b>. Потом уменьши аватар в сцене как нужно.</div>
+    </section>
+
+    <section id="s-voice">
+      <h2><span class="ico">🎙</span> Голос</h2>
+      <div class="row"><span class="lbl">Микрофон</span><select id="mic" aria-label="Микрофон"></select><label class="sw"><input type="checkbox" id="listening"> слушать</label></div>
+      <div class="hint" id="micWarn"></div>
+      <div class="row"><span class="lbl">Громкость</span><div class="meter" id="micMeter"><i></i><b class="t"></b><b class="s"></b></div><span class="val" id="micDb">—</span></div>
+      <div class="row"><button class="primary" id="calibBtn">Автонастройка</button><span class="hint">20 секунд: помолчать → поговорить → покричать. Пороги выставятся сами.</span></div>
+      <div id="calib" class="hint"></div>
+      <details class="how"><summary>Ручная настройка порогов</summary>
+        <div class="row"><span class="lbl">Усиление</span><input type="range" id="mic_gain_db" min="0" max="40" step="1"><span class="val" id="mic_gain_dbV"></span></div>
+        <div class="row"><span class="lbl">Говорит от</span><input type="range" id="talk_db" min="-75" max="-5" step="1"><span class="val" id="talk_dbV"></span></div>
+        <div class="row" id="shoutRow"><span class="lbl">Кричит от</span><input type="range" id="shout_db" min="-55" max="0" step="1"><span class="val" id="shout_dbV"></span></div>
+        <div class="hint" id="shoutNote"></div>
+        <div class="hint">На полоске громкости белая черта — с какой громкости аватар открывает рот, красная — с какой кричит (пока крик не записан в обучении).</div>
+      </details>
+    </section>
+
+    <section id="s-emo">
+      <h2><span class="ico">🎭</span> Эмоции</h2>
+      <div class="lead">Смех, крик и пение узнаются <b>по звуку</b> голоса (точнее всего после раздела «Обучение»), удивление и грусть — <b>по словам</b> из списков ниже. Полоска — уверенность сейчас, белая черта — порог; чувствительность больше — срабатывает легче.</div>
+      <div id="emos"></div>
+      <details class="how"><summary>Слова для эмоций</summary>
+        <div class="words" id="words"></div>
+        <div class="hint">Слова через запятую. <b>*</b> в конце — любое окончание («печал*» = печаль, печально). Повторы букв не важны: «эх» = «эээх».</div>
+      </details>
+    </section>
+
+    <section id="s-train">
+      <h2><span class="ico">🧠</span> Обучение на твоём голосе</h2>
+      <div class="lead">Запись — <b>4 секунды</b> после отсчёта (обычная речь — <b>8</b>): всё это время делай один звук так, как на стриме. Начни с <b>обычной речи</b>, нужно минимум <b>2 записи</b> каждого звука, лучше <b>4–6</b> и разных: тише, громче, короче, длиннее.</div>
+      <div id="trains"></div>
+      <div id="trainBox"></div>
+      <div id="overall">Запиши хотя бы 2 раза «Обычную речь» и 2 раза любой другой звук.</div>
+    </section>
+
+    <section id="s-don">
+      <h2><span class="ico">🍣</span> Донаты: аватар ест</h2>
+      <div class="row"><span class="lbl">OBS</span><span id="obsState" class="hint" style="margin:0">…</span></div>
+      <div class="row"><span class="lbl">Источник алертов</span><select id="donation_source" aria-label="Источник алертов"></select></div>
+      <div class="row"><span class="lbl">Звук алерта</span><div class="meter" id="donMeter"><i></i><b class="t"></b></div><span class="val" id="donDb">—</span></div>
+      <div class="row"><span class="lbl">Ест, если громче</span><input type="range" id="donation_db" min="-75" max="-5" step="1"><span class="val" id="donation_dbV"></span></div>
+      <div class="row"><span class="lbl">Ест минимум</span><input type="range" id="eat_seconds" min="2" max="30" step="1"><span class="val" id="eat_secondsV"></span></div>
+      <details class="how"><summary>Как настроить алерты в OBS</summary>
+        <div class="hint">У источника DonationAlerts поставь галочку <b>«Управлять аудио через OBS»</b>. Когда алерт звучит, аватар ест; пока идёт озвучка доната — продолжает. Чтобы самому слышать алерт: Микшер → ⋮ → Расширенные свойства аудио → «Мониторинг и вывод».</div>
+      </details>
+    </section>
+
+    <section id="s-swears">
+      <h2><span class="ico">🤬</span> Счётчик мата</h2>
+      <div class="stat">
+        <div><div class="num" id="sw_count">0</div><div class="cap">матов</div></div>
+        <div class="grow"><label class="sw"><input type="checkbox" id="sw_on"> считать мат</label><div class="hint" id="sw_last" style="margin:4px 0 0"></div></div>
+        <button id="sw_reset">↺ Обнулить</button>
+      </div>
+      <div class="row"><span class="lbl">Обнулять</span><select id="sw_mode" aria-label="Когда обнулять">
+        <option value="manual">только вручную</option><option value="daily">каждый день</option><option value="stream">при старте стрима в OBS</option></select>
+        <select id="sw_hour" title="Во сколько начинаются новые сутки" aria-label="Начало суток"></select></div>
+      <div class="row"><span class="lbl">Файл для OBS</span><div class="url" style="flex:1"><input type="text" id="sw_file" spellcheck="false" aria-label="Файл для OBS"><button id="sw_copy">Скопировать</button></div></div>
+      <details class="how"><summary>Как вывести счётчик в OBS</summary>
+        <div class="hint"><b>Источники → + → Текст (GDI+)</b> → галочка <b>«Читать из файла»</b> → выбери файл выше. Рядом с файлом лежит подложка <b>overlay.png</b> с надписью «маты» — добавь её как <b>Изображение</b> под текстом, число встанет в тёмное окошко.</div>
+      </details>
+      <details class="how"><summary>Текст в файле и свои слова</summary>
+        <div class="row"><span class="lbl">Текст в файле</span><input type="text" id="sw_template" spellcheck="false" style="flex:1" aria-label="Текст в файле"><span class="tag">{count} — число</span></div>
+        <div class="words">
+          <span>Считать ещё</span><input type="text" id="sw_extra" spellcheck="false" placeholder="например: херня, шлюх*">
+          <span>Не считать</span><input type="text" id="sw_ignore" spellcheck="false" placeholder="например: сука">
+        </div>
+        <div class="hint">Слова через запятую, <b>*</b> в конце — любое окончание.</div>
+      </details>
+    </section>
+
+    <section id="s-more">
+      <h2><span class="ico">⚙</span> Ещё</h2>
+      <div class="row"><span class="lbl">Проверить</span><div class="btns">
+        <button data-e="laugh">😹 Смех</button><button data-e="sad">😿 Грусть</button><button data-e="surprise">🙀 Удивление</button>
+        <button data-e="sing">🎵 Пение</button><button data-e="eat">🍣 Еда</button><button data-e="none">↺ Сброс</button>
+      </div></div>
+      <div class="row"><span class="lbl">Подпрыгивание</span><input type="range" id="bounce" min="0" max="40" step="1"><span class="val" id="bounceV"></span></div>
+      <div class="row"><span class="lbl">Аватар</span><label class="sw"><input type="checkbox" id="breathing"> дыхание в покое</label><label class="sw"><input type="checkbox" id="blink"> моргание</label></div>
+      <div class="row"><span class="lbl">Запуск</span><label class="sw"><input type="checkbox" id="autostart"> вместе с Windows</label></div>
+      <div class="row"><span class="lbl">Обновления</span><label class="sw"><input type="checkbox" id="auto_update"> ставить сами при запуске</label>
+        <span class="hint" id="updInfo"></span><button id="updBtn">Проверить</button></div>
+      <details class="how"><summary>Горячие клавиши</summary>
+        <div class="row"><label class="sw"><input type="checkbox" id="hotkeys"> включить (работают везде, даже в игре)</label></div>
+        <div class="keys">
+          <span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd></span><span>😹 смех</span>
+          <span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>2</kbd></span><span>😿 грусть</span>
+          <span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>3</kbd></span><span>🙀 удивление</span>
+          <span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>4</kbd></span><span>🎵 пение</span>
+          <span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>5</kbd></span><span>🍣 еда</span>
+          <span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>0</kbd></span><span>↺ сброс</span>
+        </div>
+        <div class="hint warn" id="busyKeys"></div>
+      </details>
+      <div class="hint">Почти всё это есть и в меню значка Vox в трее (правый клик): микрофон, эмоции, счётчик мата, донаты.</div>
+    </section>
+  </main>
+
+  <aside>
+    <div class="preview"><iframe src="/" title="аватар"></iframe></div>
+    <div class="now"><span class="chip" id="voiceChip">молчит</span> <span class="chip emo" id="emoChip" hidden></span></div>
+    <div class="guess" id="guess"></div>
+    <div class="said" id="said"></div>
+    <div class="heard" id="heard"></div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const EMO = { laugh: "😹 Смех", sad: "😿 Грусть", surprise: "🙀 Удивление", sing: "🎵 Пение" };
+  const TRAIN = { neutral: "😐 Обычная речь", shout: "📢 Крик", laugh: "😹 Смех", sing: "🎵 Пение, мычание" };
+  const BY = { laugh: "звук + слова", sad: "по словам", surprise: "по словам", sing: "звук, голос без слов" };
+  const WORDS = { surprise: "🙀 Удивление", sad: "😿 Грусть", laugh: "😹 Смех" };
+  const CLS = { neutral: "речь", shout: "крик", laugh: "смех", sad: "грусть", surprise: "удивление", sing: "пение" };
+  const recSec = (k) => k === "neutral" ? 8 : 4;
+  const RU = { "Speech": "речь", "Male speech, man speaking": "мужская речь", "Female speech, woman speaking": "женская речь",
+    "Laughter": "смех", "Giggle": "хихиканье", "Snicker": "хихиканье", "Belly laugh": "хохот", "Chuckle, chortle": "смешок",
+    "Sigh": "вздох", "Crying, sobbing": "плач", "Whimper": "всхлип", "Groan": "стон", "Wail, moan": "стон", "Gasp": "«ах!»",
+    "Singing": "пение", "Humming": "мычание", "Music": "музыка", "Breathing": "дыхание", "Shout": "крик", "Yell": "вопль",
+    "Screaming": "визг", "Silence": "тишина", "Cough": "кашель", "Throat clearing": "откашливание", "Conversation": "разговор",
+    "Narration, monologue": "рассказ", "Inside, small room": "комната", "Typing": "печать", "Computer keyboard": "клавиатура",
+    "Child speech, kid speaking": "детская речь", "Whispering": "шёпот", "Sniff": "шмыганье", "Snort": "фырканье", "Burping, eructation": "отрыжка" };
+  let cfg = null, ws = null, saveT = 0, calib = null, voice = "quiet", emo = "none";
+  const pct = (v, lo = -75, hi = 0) => `${Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100))}%`;
+  const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+  // Правки за 200 мс копятся в одну; вложенные ({ swears: {…} }) склеиваются, а не затирают друг друга.
+  const deep = (dst, src) => { for (const [k, v] of Object.entries(src)) {
+    if (v && typeof v === "object" && !Array.isArray(v)) deep(dst[k] && typeof dst[k] === "object" ? dst[k] : (dst[k] = {}), v); else dst[k] = v; } return dst; };
+  const set = (patch) => { deep(pending, structuredClone(patch)); clearTimeout(saveT); saveT = setTimeout(() => { send({ c: "set", v: pending }); pending = {}; }, 200); };
+  let pending = {};
+
+  // ---------- build
+  $("#emos").innerHTML = Object.entries(EMO).map(([k, t]) => `
+    <div class="emo"><input type="checkbox" data-on="${k}"><span class="name">${t}<br><span class="tag">${BY[k]}</span></span>
+      <div class="meter small" data-m="${k}"><i></i><b class="t" style="left:66.6%"></b></div>
+      ${BY[k] === "по словам" ? `<span class="tag">слова — ниже</span>` :
+      `<div class="sens"><input type="range" min="1" max="10" step="1" data-sens="${k}"><span class="val" style="flex:0 0 18px" data-sv="${k}"></span></div>`}</div>`).join("");
+  $("#words").innerHTML = Object.entries(WORDS).map(([k, t]) => `<span>${t}</span><input type="text" data-words="${k}" spellcheck="false">`).join("");
+  $("#emos").insertAdjacentHTML("beforeend", `
+    <div class="emo"><span></span><span class="name">📢 Крик</span>
+      <div class="meter small" data-m="shout"><i></i><b class="t" style="left:66.6%"></b></div>
+      <div class="sens"><input type="range" min="1" max="10" step="1" id="shout_sens"><span class="val" style="flex:0 0 18px" id="shout_sensV"></span></div></div>`);
+  $("#trains").innerHTML = Object.entries(TRAIN).map(([k, t]) => `
+    <div class="train"><span>${t}</span><span class="cnt" data-cnt="${k}">0</span><span class="acc" data-acc="${k}"></span>
+      <button data-rec="${k}">⏺ Записать</button><button data-last="${k}" title="Удалить последнюю запись">↶</button><button data-del="${k}" title="Удалить все записи">🗑</button></div>`).join("");
+
+  // ---------- fill from config
+  function fill() {
+    for (const id of ["mic_gain_db", "talk_db", "shout_db", "donation_db", "eat_seconds", "bounce"]) $("#" + id).value = cfg[id];
+    for (const id of ["listening", "hotkeys", "breathing", "blink", "autostart", "auto_update"]) $("#" + id).checked = !!cfg[id];
+    $("#shout_sens").value = cfg.shout_sens;
+    for (const k in EMO) {
+      document.querySelector(`[data-on=${k}]`).checked = cfg.emotions[k].on;
+      const s = document.querySelector(`[data-sens=${k}]`); if (s) s.value = cfg.emotions[k].sens;
+    }
+    document.querySelectorAll("[data-words]").forEach((el) => {
+      if (document.activeElement !== el) el.value = (cfg.words?.[el.dataset.words] || []).join(", ");
+    });
+    const sw = cfg.swears;
+    $("#sw_on").checked = sw.on; $("#sw_mode").value = sw.reset_mode; $("#sw_hour").value = sw.day_start_hour;
+    $("#sw_hour").hidden = sw.reset_mode !== "daily";
+    const keep = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v; };
+    keep("#sw_file", sw.output_file); keep("#sw_template", sw.template);
+    keep("#sw_extra", sw.extra_words.join(", ")); keep("#sw_ignore", sw.ignore_words.join(", "));
+    labels();
+  }
+  function labels() {
+    $("#mic_gain_dbV").textContent = "+" + cfg.mic_gain_db + " дБ";
+    $("#talk_dbV").textContent = cfg.talk_db + " дБ"; $("#shout_dbV").textContent = cfg.shout_db + " дБ";
+    $("#donation_dbV").textContent = cfg.donation_db + " дБ"; $("#eat_secondsV").textContent = cfg.eat_seconds + " с";
+    $("#bounceV").textContent = cfg.bounce + " px";
+    $("#micMeter .t").style.left = pct(cfg.talk_db); $("#micMeter .s").style.left = pct(cfg.shout_db);
+    $("#donMeter .t").style.left = pct(cfg.donation_db);
+    for (const k in EMO) { const v = document.querySelector(`[data-sv=${k}]`); if (v) v.textContent = cfg.emotions[k].sens; }
+    $("#shout_sensV").textContent = cfg.shout_sens;
+  }
+
+  // ---------- inputs
+  for (const id of ["mic_gain_db", "talk_db", "shout_db", "donation_db", "eat_seconds", "bounce"]) {
+    $("#" + id).addEventListener("input", (e) => {
+      cfg[id] = +e.target.value;
+      const patch = { [id]: cfg[id] };
+      if (id === "talk_db" && cfg.shout_db < cfg.talk_db + 4) { cfg.shout_db = cfg.talk_db + 4; $("#shout_db").value = cfg.shout_db; patch.shout_db = cfg.shout_db; }
+      labels(); set(patch);
+    });
+  }
+  for (const id of ["listening", "hotkeys", "breathing", "blink", "autostart", "auto_update"]) {
+    $("#" + id).addEventListener("change", (e) => { cfg[id] = e.target.checked; set({ [id]: cfg[id] }); });
+  }
+  document.querySelectorAll("[data-on]").forEach((el) => el.addEventListener("change", () => {
+    const k = el.dataset.on; cfg.emotions[k].on = el.checked; set({ emotions: { [k]: { on: el.checked } } });
+  }));
+  document.querySelectorAll("[data-sens]").forEach((el) => el.addEventListener("input", () => {
+    const k = el.dataset.sens; cfg.emotions[k].sens = +el.value; labels(); set({ emotions: { [k]: { sens: +el.value } } });
+  }));
+  document.querySelectorAll("[data-words]").forEach((el) => el.addEventListener("input", () => {
+    const list = el.value.split(",").map((w) => w.trim()).filter(Boolean);
+    cfg.words[el.dataset.words] = list; set({ words: { [el.dataset.words]: list } });
+  }));
+  // ---------- счётчик мата
+  $("#sw_hour").innerHTML = Array.from({ length: 24 }, (_, h) => `<option value="${h}">с ${String(h).padStart(2, "0")}:00</option>`).join("");
+  const swSet = (patch) => { Object.assign(cfg.swears, patch); set({ swears: patch }); };
+  $("#sw_on").addEventListener("change", (e) => swSet({ on: e.target.checked }));
+  $("#sw_mode").addEventListener("change", (e) => { swSet({ reset_mode: e.target.value }); $("#sw_hour").hidden = e.target.value !== "daily"; });
+  $("#sw_hour").addEventListener("change", (e) => swSet({ day_start_hour: +e.target.value }));
+  // Путь — по Enter или уходу с поля: иначе файлы создавались бы на каждой букве.
+  $("#sw_file").addEventListener("change", (e) => { const v = e.target.value.trim(); if (v) swSet({ output_file: v }); else e.target.value = cfg.swears.output_file; });
+  $("#sw_template").addEventListener("input", (e) => swSet({ template: e.target.value || "{count}" }));
+  const wordList = (v) => v.split(",").map((w) => w.trim()).filter(Boolean);
+  $("#sw_extra").addEventListener("input", (e) => swSet({ extra_words: wordList(e.target.value) }));
+  $("#sw_ignore").addEventListener("input", (e) => swSet({ ignore_words: wordList(e.target.value) }));
+  $("#sw_reset").addEventListener("click", () => { if (confirm("Обнулить счётчик мата?")) send({ c: "swears", a: "reset" }); });
+  $("#sw_copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("#sw_file").value); } catch { $("#sw_file").select(); document.execCommand("copy"); }
+    $("#sw_copy").textContent = "Скопировано ✔"; setTimeout(() => $("#sw_copy").textContent = "Скопировать", 1500);
+  });
+  // ---------- обновления
+  let updFound = null;
+  $("#updBtn").addEventListener("click", () => send({ c: "update", a: updFound ? "install" : "check" }));
+  function onUpdate(d) {
+    updFound = d.found;
+    $("#updInfo").textContent = d.found ? `версия ${d.version} → вышла ${d.found}` : `версия ${d.version}` + (d.note ? ` · ${d.note}` : "");
+    $("#updBtn").textContent = d.found ? `⬇ Установить ${d.found}` : "Проверить";
+    $("#updBtn").classList.toggle("primary", !!d.found);
+  }
+  function onSwears(d) {
+    $("#sw_count").textContent = d.count;
+    const n = d.count % 100, k = n % 10;
+    $("#sw_count").nextElementSibling.textContent = n > 10 && n < 20 ? "матов" : k === 1 ? "мат" : k >= 2 && k <= 4 ? "мата" : "матов";
+    $("#sw_count").classList.toggle("off", !d.on);
+    $("#sw_last").innerHTML = d.last ? `последнее: <q>${esc(d.last.text)}</q> → +${d.last.n}` : "";
+  }
+  $("#shout_sens").addEventListener("input", (e) => { cfg.shout_sens = +e.target.value; labels(); set({ shout_sens: cfg.shout_sens }); });
+  $("#mic").addEventListener("change", (e) => { set({ device: e.target.value || null }); micWarn(e.target.value); });
+  $("#donation_source").addEventListener("change", (e) => set({ donation_source: e.target.value }));
+  document.querySelectorAll("[data-e]").forEach((b) => b.addEventListener("click", () => send({ c: "emo", e: b.dataset.e })));
+  $("#copyUrl").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("#url").value); } catch { $("#url").select(); document.execCommand("copy"); }
+    $("#copyUrl").textContent = "Скопировано ✔"; setTimeout(() => $("#copyUrl").textContent = "Скопировать", 1500);
+  });
+
+  // ---------- training
+  // Каждая запись — свой номер: таймеры прошлой записи не трогают новую.
+  // phase: "count" — отсчёт, "rec" — идёт запись, "wait" — ждём ответа.
+  let rec = null, recSeq = 0;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const recEnd = () => { rec = null; };
+  document.querySelectorAll("[data-rec]").forEach((b) => b.addEventListener("click", async () => {
+    if (rec) return;
+    const me = rec = { id: ++recSeq, phase: "count" };
+    const live = () => rec === me;
+    const box = $("#trainBox"); box.classList.add("show");
+    const what = TRAIN[b.dataset.rec];
+    for (const n of [3, 2, 1]) { if (!live()) return; box.textContent = `${what}: приготовься… ${n}`; await sleep(700); }
+    if (!live()) return;
+    me.phase = "rec"; send({ c: "train", e: b.dataset.rec });
+    for (let t = recSec(b.dataset.rec); t > 0; t--) { if (!live()) return; box.textContent = `🔴 ${what} — давай! ещё ${t} с`; await sleep(1000); }
+    if (!live()) return;
+    me.phase = "wait"; box.textContent = "⏳ Обрабатываю…";
+    await sleep(15000);
+    if (live()) { recEnd(); box.textContent = "⚠ Vox не ответил — попробуй записать ещё раз"; }
+  }));
+  document.querySelectorAll("[data-last]").forEach((b) => b.addEventListener("click", () => send({ c: "untrain", e: b.dataset.last + "#last" })));
+  document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => {
+    if (confirm(`Удалить все записи «${TRAIN[b.dataset.del]}»?`)) send({ c: "untrain", e: b.dataset.del });
+  }));
+  const heardText = (list) => (list || []).filter(([n]) => RU[n]).map(([n, p]) => `${RU[n]} ${Math.round(p * 100)}%`).join(" · ");
+
+  // ---------- calibration (по живой громкости)
+  $("#calibBtn").addEventListener("click", async () => {
+    if (calib) return;
+    const box = $("#calib");
+    const phase = async (text, sec) => {
+      const vals = []; calib = vals;
+      for (let t = sec; t > 0; t--) { box.innerHTML = `<b>${text} — ${t}…</b>`; await new Promise((r) => setTimeout(r, 1000)); }
+      calib = null; return vals.sort((a, b) => a - b);
+    };
+    const q = (a, p) => a.length ? a[Math.min(a.length - 1, Math.floor(a.length * p))] : -100;
+    const quiet = await phase("🤫 Помолчи", 4);
+    const talk = await phase("🗣 Говори обычным голосом", 7);
+    const loud = await phase("📢 Теперь покричи", 5);
+    const noise = q(quiet, 0.95);
+    const speech = talk.filter((v) => v > noise + 6), shout = loud.filter((v) => v > noise + 6);
+    if (speech.length < 10) { box.textContent = "Не услышала речь: проверь, что выбран нужный микрофон и галочка «слушать» стоит."; return; }
+    // Тихий источник: сначала усиление, чтобы речь была около −28 дБ, и все замеры сдвигаем на него.
+    const add = Math.round(Math.max(0, Math.min(40 - cfg.mic_gain_db, -28 - q(speech, 0.5))));
+    if (add > 0) { for (const a of [speech, shout]) a.forEach((v, i) => a[i] = v + add); cfg.mic_gain_db += add; set({ mic_gain_db: cfg.mic_gain_db }); }
+    const noiseG = noise + add;
+    const tMed = q(speech, 0.5), tHi = q(speech, 0.9), sMed = q(shout, 0.5);
+    const talk_db = Math.round(Math.max(-72, Math.min(noiseG + 8, tMed - 8)));
+    const sh = shout.length > 5 && sMed > tHi + 2 ? (tHi + sMed) / 2 : tHi + 4;
+    const shout_db = Math.round(Math.min(-1, Math.max(talk_db + 6, sh)));
+    Object.assign(cfg, { talk_db, shout_db }); fill(); set({ talk_db, shout_db });
+    box.textContent = `Готово ✔ ${add ? `усиление +${cfg.mic_gain_db} дБ, ` : ""}тишина ${noiseG.toFixed(0)} дБ, речь ${tMed.toFixed(0)}…${tHi.toFixed(0)} дБ, крик ${shout.length > 5 ? sMed.toFixed(0) + " дБ" : "не услышала"}. Говорит от ${talk_db}, кричит от ${shout_db}.`;
+  });
+
+  // ---------- обучение: счётчики и точность
+  let netShout = false;
+  const tone = (a) => a >= 90 ? "good" : a >= 75 ? "mid" : "bad";
+  function onTrain(d) {
+    for (const k in TRAIN) {
+      const n = d.counts[k] || 0, a = d.acc[k], conf = d.confused[k];
+      const c = document.querySelector(`[data-cnt="${k}"]`); c.textContent = `${n} шт.`; c.classList.toggle("good", n >= 4);
+      const el = document.querySelector(`[data-acc="${k}"]`);
+      el.className = "acc" + (a != null ? " " + tone(a) : "");
+      el.textContent = a != null ? `точность ${a}%` + (conf && a < 90 ? ` · путает с «${CLS[conf]}»` : "")
+        : n === 1 ? "нужна ещё 1 запись" : n > 1 && !d.classes ? "ждёт «обычную речь»" : "";
+    }
+    const o = $("#overall");
+    if (d.busy) o.innerHTML = "⏳ Учусь на твоих записях…";
+    else if (d.overall == null) o.textContent = (d.counts.neutral || 0) < 2
+      ? "Запиши хотя бы 2 раза «Обычную речь» и 2 раза любой другой звук."
+      : "Запиши ещё хотя бы 2 раза любой другой звук.";
+    else {
+      const weak = Object.keys(TRAIN).filter((k) => d.acc[k] != null && d.acc[k] < 90);
+      o.innerHTML = `Точность на твоих записях: <b class="${tone(d.overall)}">${d.overall}%</b>` +
+        (weak.length ? ` · добавь по 2–3 записи: ${weak.map((k) => "«" + CLS[k] + "»").join(", ")}` : " ✔");
+    }
+    if (d.done && rec && rec.phase !== "count") {
+      recEnd();
+      const g = d.done.guess;
+      $("#trainBox").textContent = `Записала ✔ ${TRAIN[d.done.e]}. Слышу: ${heardText(d.done.heard) || "—"}` +
+        (g ? `. До этой записи приняла бы за «${CLS[g.c]}» (${Math.round(g.p * 100)}%)` : "");
+    }
+  }
+  function shoutMode() {
+    $("#shoutRow").style.opacity = netShout ? 0.45 : 1;
+    $("#shoutNote").textContent = netShout ? "Крик распознаёт нейросеть по твоим записям — красная черта больше не нужна. Строгость крика — в разделе «Эмоции»." : "";
+  }
+  function micWarn(name) {
+    const n = name || "";
+    $("#micWarn").textContent = /mix|virtual|stream|wave link|voicemeeter|cable/i.test(n)
+      ? "Это микс: записи для обучения делай на нём же, тогда Vox выучит твой голос вместе с эффектами. Если в микс попадает звук игры или музыки, эмоции могут сбиваться."
+      : "";
+  }
+
+  // ---------- messages
+  const VOICE = { quiet: "молчит", talk: "говорит", shout: "КРИЧИТ" };
+  const EMO_RU = { laugh: "😹 смеётся", sad: "😿 грустит", surprise: "🙀 удивляется", sing: "🎵 поёт", eat: "🍣 ест" };
+  function onMsg(d) {
+    if (d.t === "cfg") { cfg = d.cfg; fill(); $("#url").value = d.url;
+      $("#busyKeys").textContent = d.busyHotkeys?.length ? `Заняты другой программой: Ctrl+Alt+${d.busyHotkeys.join(", Ctrl+Alt+")}` : ""; }
+    else if (d.t === "status") { const s = $("#status"); s.textContent = d.text; s.classList.toggle("ok", d.ok); }
+    else if (d.t === "mics") {
+      const list = d.list || [];
+      $("#mic").innerHTML = [`<option value="">По умолчанию (Windows)${!d.selected && d.current ? ` — ${esc(d.current)}` : ""}</option>`,
+        ...list.map((n) => `<option value="${esc(n)}"${n === d.selected ? " selected" : ""}>${esc(n)}</option>`)].join("");
+      micWarn(d.selected || d.current);
+    }
+    else if (d.t === "obs") {
+      const ok = d.status === "ok";
+      $("#obsState").innerHTML = ok ? '<span style="color:var(--ok)">подключено ✔</span>' : esc(d.status);
+      const cur = cfg?.donation_source || "";
+      const list = d.inputs || [];
+      if (cur && !list.includes(cur)) list.unshift(cur);
+      $("#donation_source").innerHTML = [`<option value="">— выключено —</option>`,
+        ...list.map((n) => `<option value="${esc(n)}"${n === cur ? " selected" : ""}>${esc(n)}</option>`)].join("");
+    }
+    else if (d.t === "train") onTrain(d);
+    else if (d.t === "swears") onSwears(d);
+    else if (d.t === "update") onUpdate(d);
+    else if (d.t === "training" && d.state === "error") { recEnd(); $("#trainBox").classList.add("show"); $("#trainBox").textContent = "⚠ " + d.text; }
+    else if (d.t === "m") {
+      if (calib) calib.push(d.db);
+      $("#micMeter i").style.width = pct(d.db); $("#micDb").textContent = d.db > -99 ? d.db.toFixed(0) + " дБ" : "—";
+      $("#donMeter i").style.width = pct(d.don); $("#donDb").textContent = d.don > -99 ? d.don.toFixed(0) + " дБ" : "—";
+      for (const k of [...Object.keys(EMO), "shout"]) document.querySelector(`[data-m=${k}] i`).style.width = Math.min(100, (d.sc[k] || 0) / 1.5 * 100) + "%";
+      $("#guess").textContent = !d.guess?.length ? "" : d.fam < 0.5 ? "звук не похож на твои записи — эмоции не включаю"
+        : "думаю: " + d.guess.map(([c, p]) => `${CLS[c] || c} ${Math.round(p * 100)}%`).join(" · ");
+      if (d.net !== netShout) { netShout = d.net; shoutMode(); }
+      if (d.v !== voice) { voice = d.v; const c = $("#voiceChip"); c.className = "chip " + voice; c.textContent = VOICE[voice]; }
+      if (d.e !== emo) { emo = d.e; const c = $("#emoChip"); c.hidden = emo === "none"; c.textContent = EMO_RU[emo] || ""; }
+      $("#heard").textContent = d.heard?.length ? "слышу: " + heardText(d.heard) : "";
+      onSaid(d);
+    }
+  }
+  let saidKey = "";
+  function onSaid(d) {
+    const el = $("#said");
+    if (d.asr === "loading") { el.textContent = "загружаю распознавание слов…"; saidKey = ""; return; }
+    if (d.asr !== "ready") { el.innerHTML = `<span class="warn">слова не распознаются: ${esc(d.asr)}</span>`; saidKey = ""; return; }
+    const s = d.said; const key = s ? s.text + "|" + s.e : "";
+    if (key === saidKey) return; saidKey = key;
+    el.innerHTML = !s ? "" : `сказал: <q>${esc(s.text || "…без слов…")}</q>` + (s.e ? ` → <span class="e">${EMO_RU[s.e] || s.e}</span>` : "");
+  }
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // ---------- навигация: подсвечиваем раздел, который сейчас на экране
+  const navLinks = [...document.querySelectorAll("nav.tabs a")];
+  const spy = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) navLinks.forEach((a) => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+  }), { rootMargin: "-20% 0px -70% 0px" });
+  document.querySelectorAll("main section").forEach((sec) => spy.observe(sec));
+
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}/ws?settings`);
+    ws.onmessage = (m) => onMsg(JSON.parse(m.data));
+    ws.onclose = () => { const s = $("#status"); s.textContent = "Vox не запущен — запусти его из меню «Пуск»"; s.classList.remove("ok"); setTimeout(connect, 2000); };
+  }
+  connect();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Vox — аватар</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  #stage { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; }
+  /* bob — подпрыгивание от громкости, cat — анимация состояния.
+     Экономия для OBS: браузер рисует новый кадр, только когда картинка меняется. Поэтому
+     анимации идут шагами (steps): дыхание ~10 кадров в секунду, разговор ~15–20, а не 30–60.
+     В покое без дыхания кошка не рисуется вовсе, кроме моргания. Подпрыгивание — без
+     плавного перехода: кадр только на новое значение громкости (не чаще 20 раз в секунду). */
+  #bob { width: 90vmin; height: 90vmin; will-change: transform; }
+  #cat { position: relative; width: 100%; height: 100%; transform-origin: 50% 100%; will-change: transform; }
+  #cat img { position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; user-select: none; }
+  #cat img.on { visibility: visible; }
+  #cat img.chew1 { visibility: visible; animation: chew1 .5s steps(1) infinite; }
+  #cat img.chew2 { visibility: visible; animation: chew2 .5s steps(1) infinite; }
+  @keyframes chew1 { 0% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes chew2 { 0% { opacity: 0; } 50% { opacity: 1; } }
+
+  /* steps(n) — на каждый промежуток между ключевыми кадрами */
+  .a-idle     #cat { animation: breathe 3.2s steps(16) infinite; }
+  .a-talk     #cat { animation: talk .32s steps(3) infinite; }
+  .a-shout    #cat { animation: shout .12s steps(1) infinite; }
+  .a-sad      #cat { animation: sad 2.6s steps(10) infinite; }
+  .a-laugh    #cat { animation: laugh .34s steps(3) infinite; }
+  .a-surprise #cat { animation: surprise .45s steps(5) both; }
+  .a-sing     #cat { animation: sing 1.6s steps(8) infinite; }
+  .a-eat      #cat { animation: eat .5s steps(3) infinite; }
+  .no-breath.a-idle #cat { animation: none; }
+
+  @keyframes breathe  { 0%,100% { transform: scale(1,1); } 50% { transform: scale(1.012,1.022); } }
+  @keyframes talk     { 0%,100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) scale(1.01); } }
+  @keyframes shout {
+    0%   { transform: scale(1.06) translate(0,0)       rotate(0); }
+    25%  { transform: scale(1.06) translate(-7px,3px)  rotate(-2.5deg); }
+    50%  { transform: scale(1.07) translate(6px,-4px)  rotate(2deg); }
+    75%  { transform: scale(1.06) translate(-4px,-2px) rotate(-1.5deg); }
+    100% { transform: scale(1.06) translate(0,0)       rotate(0); }
+  }
+  @keyframes sad      { 0%,100% { transform: translateY(6px) rotate(0); } 50% { transform: translateY(10px) rotate(-2deg) scale(.99,.98); } }
+  @keyframes laugh    { 0%,100% { transform: translateY(0) rotate(-2.5deg); } 50% { transform: translateY(-4%) rotate(2.5deg) scale(1.02); } }
+  @keyframes surprise { 0% { transform: scale(1); } 35% { transform: translateY(-6%) scale(1.08,1.1); } 100% { transform: translateY(-2%) scale(1.03); } }
+  @keyframes sing     { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) scale(1.01); } }
+  @keyframes eat      { 0%,100% { transform: translateY(0) scale(1,1); } 50% { transform: translateY(1.2%) scale(1.01,.985); } }
+</style>
+</head>
+<body>
+<div id="stage" class="a-idle">
+  <div id="bob">
+    <div id="cat">
+      <img data-f="idle"     src="img/idle.webp" class="on" alt="">
+      <img data-f="blink"    src="img/blink.webp" alt="">
+      <img data-f="talk"     src="img/talk.webp" alt="">
+      <img data-f="shout"    src="img/shout.webp" alt="">
+      <img data-f="sad"      src="img/sad.webp" alt="">
+      <img data-f="sad-talk" src="img/sad-talk.webp" alt="">
+      <img data-f="laugh"    src="img/laugh.webp" alt="">
+      <img data-f="surprise" src="img/surprise.webp" alt="">
+      <img data-f="sing"     src="img/sing.webp" alt="">
+      <img data-f="eat-1"    src="img/eat-1.webp" alt="">
+      <img data-f="eat-2"    src="img/eat-2.webp" alt="">
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  // Вся логика — в приложении Vox. Страница только рисует состояние, которое оно присылает.
+  const stage = document.getElementById("stage"), bob = document.getElementById("bob");
+  const imgs = {};
+  document.querySelectorAll("#cat img").forEach((img) => { imgs[img.dataset.f] = img; img.decode?.().catch(() => {}); });
+  let st = { v: "quiet", l: 0, e: "none" }, cfg = { bounce: 16, breathing: true, blink: true };
+  let blinking = false, curFrame = "idle", curAnim = "a-idle", curBob = "";
+
+  function setFrame(f) {
+    if (f === curFrame) return;
+    for (const n of curFrame === "eat" ? ["eat-1", "eat-2"] : [curFrame]) imgs[n].classList.remove("on", "chew1", "chew2");
+    if (f === "eat") { imgs["eat-1"].classList.add("chew1"); imgs["eat-2"].classList.add("chew2"); }
+    else imgs[f].classList.add("on");
+    curFrame = f;
+  }
+
+  function render() {
+    const { v, e } = st;
+    let f, a;
+    if (e === "eat") { f = "eat"; a = "a-eat"; }
+    else if (e === "laugh") { f = "laugh"; a = "a-laugh"; }
+    else if (e === "sad") { f = v === "quiet" ? "sad" : "sad-talk"; a = "a-sad"; }
+    else if (e === "surprise") { f = "surprise"; a = "a-surprise"; }
+    else if (e === "sing") { f = "sing"; a = "a-sing"; }
+    else if (v === "shout") { f = "shout"; a = "a-shout"; }
+    else if (v === "talk") { f = "talk"; a = "a-talk"; }
+    else { f = blinking ? "blink" : "idle"; a = "a-idle"; }
+    setFrame(f);
+    if (a !== curAnim) { stage.classList.replace(curAnim, a); curAnim = a; }
+    const k = e === "none" || e === "sad" ? 1 : 0.4;
+    const t = `translateY(${-Math.round(st.l * cfg.bounce * k)}px)`;
+    if (t !== curBob) { bob.style.transform = t; curBob = t; }
+  }
+
+  (function scheduleBlink() {
+    setTimeout(() => {
+      if (cfg.blink && st.e === "none" && st.v === "quiet") {
+        blinking = true; render();
+        setTimeout(() => { blinking = false; render(); }, 130);
+        if (Math.random() < 0.2) setTimeout(() => { blinking = true; render(); setTimeout(() => { blinking = false; render(); }, 110); }, 260);
+      }
+      scheduleBlink();
+    }, 2500 + Math.random() * 4000);
+  })();
+
+  function connect() {
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.onmessage = (m) => {
+      const d = JSON.parse(m.data);
+      if (d.t === "state") { st = d; render(); }
+      else if (d.t === "cfg") {
+        cfg = d.cfg; stage.classList.toggle("no-breath", !cfg.breathing); render();
+      }
+    };
+    // Vox закрыт — аватар просто спокойно сидит и ждёт.
+    ws.onclose = () => { st = { v: "quiet", l: 0, e: "none" }; render(); setTimeout(connect, 2000); };
+  }
+  connect();
+  render();
+})();
+</script>
+</body>
+</html>

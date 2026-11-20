@@ -1,0 +1,32 @@
+#pragma code_page(65001)
+
+1 ICON "icon.ico"
+2 ICON "tray-paused.ico"
+3 ICON "tray-busy.ico"
+4 ICON "tray-error.ico"
+1 24 "app.manifest"
+
+1 VERSIONINFO
+FILEVERSION 2,1,0,0
+PRODUCTVERSION 2,1,0,0
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "041904B0"
+    BEGIN
+      VALUE "FileDescription", "Vox — голосовой помощник стримера"
+      VALUE "ProductName", "Vox"
+      VALUE "FileVersion", "2.1.0"
+      VALUE "ProductVersion", "2.1.0"
+      VALUE "OriginalFilename", "vox.exe"
+      VALUE "CompanyName", "denprog5"
+      VALUE "Comments", "Автор — banshee, twitch.tv/banshee_nt"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x419, 1200
+  END
+END
