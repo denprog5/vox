@@ -60,14 +60,28 @@ pub fn spawn(port: u16, hub: SharedHub) -> Result<(), String> {
                 let _ = thread::Builder::new()
                     .name("conn".into())
                     .stack_size(256 * 1024)
-                    .spawn(move || handle(stream, hub));
+                    .spawn(move || handle(stream, hub, port));
             }
         })
         .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-fn handle(stream: TcpStream, hub: SharedHub) {
+/// Запрос пришёл на наш адрес, а не на чужое имя, которое DNS направил на 127.0.0.1.
+fn host_ok(host: &str, port: u16) -> bool {
+    host == format!("127.0.0.1:{port}") || host == format!("localhost:{port}")
+}
+
+/// WebSocket открывает только наша же страница (аватар или настройки). Любой сайт в браузере
+/// может подключиться к 127.0.0.1 — браузер тогда шлёт свой Origin, его и отсекаем.
+/// Без Origin приходят не браузеры: локальная программа и так может всё.
+fn origin_ok(origin: Option<&str>, port: u16) -> bool {
+    origin.is_none_or(|o| {
+        o == format!("http://127.0.0.1:{port}") || o == format!("http://localhost:{port}")
+    })
+}
+
+fn handle(stream: TcpStream, hub: SharedHub, port: u16) {
     let _ = stream.set_nodelay(true);
     let mut reader = BufReader::new(match stream.try_clone() {
         Ok(s) => s,
@@ -81,16 +95,21 @@ fn handle(stream: TcpStream, hub: SharedHub) {
     let (method, target) = (parts.next().unwrap_or(""), parts.next().unwrap_or("/"));
     let path = target.split('?').next().unwrap_or("/");
     let query = target.split_once('?').map_or("", |(_, q)| q);
-    let mut ws_key = None;
+    let (mut ws_key, mut host, mut origin) = (None, String::new(), None);
     loop {
         let mut h = String::new();
         if reader.read_line(&mut h).unwrap_or(0) == 0 || h == "\r\n" {
             break;
         }
-        if let Some((k, v)) = h.split_once(':')
-            && k.trim().eq_ignore_ascii_case("sec-websocket-key")
-        {
-            ws_key = Some(v.trim().to_string());
+        if let Some((k, v)) = h.split_once(':') {
+            let (k, v) = (k.trim(), v.trim().to_string());
+            if k.eq_ignore_ascii_case("sec-websocket-key") {
+                ws_key = Some(v);
+            } else if k.eq_ignore_ascii_case("host") {
+                host = v.to_ascii_lowercase();
+            } else if k.eq_ignore_ascii_case("origin") {
+                origin = Some(v.to_ascii_lowercase());
+            }
         }
     }
     let mut out = stream;
@@ -98,7 +117,15 @@ fn handle(stream: TcpStream, hub: SharedHub) {
         let _ = respond(&mut out, "405 Method Not Allowed", "text/plain", b"");
         return;
     }
+    if !host_ok(&host, port) {
+        let _ = respond(&mut out, "403 Forbidden", "text/plain", b"bad host");
+        return;
+    }
     if path == "/ws" {
+        if !origin_ok(origin.as_deref(), port) {
+            let _ = respond(&mut out, "403 Forbidden", "text/plain", b"bad origin");
+            return;
+        }
         if let Some(key) = ws_key {
             let kind = if query.contains("settings") {
                 Kind::Settings
@@ -277,6 +304,18 @@ mod tests {
             accept_key("dGhlIHNhbXBsZSBub25jZQ=="),
             "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
         );
+    }
+
+    #[test]
+    fn rejects_foreign_hosts_and_origins() {
+        assert!(host_ok("127.0.0.1:7710", 7710));
+        assert!(host_ok("localhost:7710", 7710));
+        assert!(!host_ok("evil.example:7710", 7710));
+        assert!(!host_ok("127.0.0.1:7711", 7710));
+        assert!(origin_ok(None, 7710));
+        assert!(origin_ok(Some("http://127.0.0.1:7710"), 7710));
+        assert!(!origin_ok(Some("https://evil.example"), 7710));
+        assert!(!origin_ok(Some("null"), 7710));
     }
 
     #[test]

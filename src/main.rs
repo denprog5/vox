@@ -508,9 +508,16 @@ impl App {
             }
         }
         merge(&mut cur, &patch);
-        let Ok(new) = serde_json::from_value::<Config>(cur) else {
+        let Ok(mut new) = serde_json::from_value::<Config>(cur) else {
             return;
         };
+        // Счётчик пишет только текстовый файл: страница не может указать ему exe, bat и т.п.
+        let txt = |p: &std::path::Path| {
+            p.extension().is_some_and(|e| e.eq_ignore_ascii_case("txt"))
+        };
+        if !txt(&new.swears.output_file) {
+            new.swears.output_file = self.cfg.swears.output_file.clone();
+        }
         let device_changed = new.device != self.cfg.device;
         let listening_changed = new.listening != self.cfg.listening;
         self.cfg = new;
@@ -544,6 +551,10 @@ impl App {
     fn publish_cfg(&self) {
         let mut cfg = serde_json::to_value(&self.cfg).unwrap_or_default();
         cfg["autostart"] = win::autostart_enabled().into();
+        // Пароль OBS странице не нужен: не отдаём его наружу.
+        if let Some(o) = cfg.as_object_mut() {
+            o.remove("obs_password");
+        }
         let msg = json!({
             "t": "cfg",
             "cfg": cfg,
